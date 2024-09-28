@@ -28,11 +28,6 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: ./dist
-
       - name: Print folder structure before copying
         run: |
           echo "Folder structure before copying:"
@@ -49,7 +44,11 @@ jobs:
         run: |
           echo "Folder structure after copying:"
           tree -L 4
-  
+ 
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ./dist  
 
   deploy:
     environment:
