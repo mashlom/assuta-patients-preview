@@ -1,0 +1,246 @@
+/* src/apps/eos/EosStyles.css */
+
+/* Global styles */
+html,
+body {
+  max-width: 700px;
+  direction: rtl;
+  height: 100%;
+  scroll-behavior: smooth;
+  margin: 0 auto;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* EOS specific styles */
+.eos-main-content {
+  text-align: justify;
+}
+
+.group-container .form-group .form-check {
+  display: inline-block;
+  margin-right: 1rem;
+}
+
+.cards-container {
+  width: 100%;
+  margin: 0 auto;
+}
+
+.info {
+  font-size: 24px;
+}
+
+.input-col {
+  padding-right: 0px;
+}
+
+.col-auto-text-cols {
+  min-width: 150px;
+  padding: 0px;
+}
+
+.back-button {
+  float: right;
+  margin: 5px;
+  cursor: pointer;
+  box-shadow: 0 0 5px -1px rgba(0, 0, 0, 0.2);
+  padding-right: 30px;
+  padding-left: 30px;
+  border-radius: 10px;
+  font-size: 30px;
+  color: var(--page-font-color);
+}
+
+.back-button:active {
+  box-shadow: 0 0 5px -1px rgba(0, 0, 0, 0.6);
+}
+
+.back-button-img {
+  width: 30px;
+  height: 30px;
+}
+
+.content-risks {
+  text-align: center;
+}
+
+.risks-header {
+  padding-top: 15px;
+  padding-left: 80px;
+}
+
+.risks-container {
+  width: 100%;
+  padding: 0;
+  margin-top: 3dvh;
+}
+
+.reset-button {
+  margin-left: 20px;
+  display: grid;
+  align-items: center;
+  justify-content: left;
+}
+
+.circle {
+  display: inline-block;
+  width: 0.65em;
+  height: 0.65em;
+  border-radius: 50%;
+  margin-left: 10px;
+}
+
+.calc-button-container {
+  margin-top: 15px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.calc-button {
+  background-color: #103c6e;
+  color: white;
+  width: 100px;
+}
+
+.calc-button:hover {
+  background-color: #103c6e;
+  color: white;
+}
+
+.card-title {
+  color: var(--page-font-color) !important;
+}
+
+.caption-fs {
+  font-size: 0.97rem !important;
+  font-weight: 600;
+}
+
+.custom-radio {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 1px solid #103c6e;
+  border-radius: 50%;
+  outline: none;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-bottom: 3px;
+}
+
+.custom-radio:checked::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0px;
+  height: 0px;
+  background-color: #103c6e;
+  border-radius: 50%;
+}
+
+.collapse-item {
+  cursor: pointer;
+}
+
+.green {
+  background-color: #d4edda;
+}
+.yellow {
+  background-color: #fff3cd;
+}
+.red {
+  background-color: #f8d7da;
+}
+
+.collapse-item .card-body {
+  text-align: right;
+}
+
+.collapse-item .icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.collapse-item .btn {
+  width: calc(100% - 40px);
+  text-align: right;
+}
+
+.card-body {
+  color: var(--page-font-color);
+}
+
+.eos-per-condition {
+  font-weight: bolder;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #e5fffa;
+}
+
+.modal-title {
+  flex-grow: 1;
+  text-align: right;
+  font-size: 1rem;
+}
+
+.btn-close {
+  margin-left: auto;
+  position: absolute;
+  left: 10px;
+}
+
+.subpage-header {
+  padding-top: 15px;
+  padding-left: 80px;
+}
+
+.paragraph-title {
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+/* Footer styles */
+.footer-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background-color: #f8f9fa;
+  padding: 10px 0;
+}
+
+.footer-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.bottom-menu-color {
+  width: 30px;
+  height: 5px;
+  background-color: #103c6e;
+  margin-bottom: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .collapse-item .icon {
+    left: 5px;
+  }
+}
