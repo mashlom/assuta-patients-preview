@@ -5,13 +5,19 @@ import AppsContainer from '../components/AppsContainer.tsx';
 import { MashlomAppType } from '../config/apps.ts';
 import Header from '../components/Header.tsx';
 import Footer from '../components/Footer.tsx';
+import IframeWrapper from '../components/IframeWrapper.tsx';
 
 // Map of possible app components
 const appComponents: Record<
   string,
-  React.LazyExoticComponent<React.ComponentType<any>>
+  | React.LazyExoticComponent<React.ComponentType<any>>
+  | { type: 'iframe'; urlPattern: string }
 > = {
   demo: React.lazy(() => import('../apps/Demo/index.tsx')),
+  eos: {
+    type: 'iframe',
+    urlPattern: 'https://mashlom.me/${hospital}/pediatric/eos/',
+  },
   // Add more apps here
 };
 
@@ -23,7 +29,7 @@ const HospitalAppList: React.FC<{
     <Header credit="111" />
     <div>
       <h1>{hospitals[hospital].name}</h1>
-      <AppsContainer apps={apps} hospital="asuta" />
+      <AppsContainer apps={apps} hospital="assuta" />
     </div>
     <Footer type="informative" />
   </>
@@ -60,18 +66,36 @@ const Hospital: React.FC = () => {
         return <div>App not found</div>;
       }
 
-      return (
-        <Suspense fallback={<div>Loading...</div>}>
-          <AppComponent hospital={hospital} />
-        </Suspense>
-      );
+      if (typeof AppComponent === 'object' && AppComponent.type === 'iframe') {
+        const iframeUrl = AppComponent.urlPattern.replace(
+          '${hospital}',
+          hospital || 'assuta'
+        );
+        return (
+          <IframeWrapper url={iframeUrl} title={`${app} for ${hospital}`} />
+        );
+      } else {
+        const LazyComponent = AppComponent as React.LazyExoticComponent<
+          React.ComponentType<any>
+        >;
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <LazyComponent hospital={hospital} />
+          </Suspense>
+        );
+      }
+      // return (
+      //   <Suspense fallback={<div>Loading...</div>}>
+      //     <AppComponent hospital={hospital} />
+      //   </Suspense>
+      // );
     }
   }
 
   // If no app is specified or app is invalid, show the hospital's app list
   return (
     <HospitalAppList
-      hospital={hospital || 'asuta'}
+      hospital={hospital || 'assuta'}
       apps={hospitalConfig.apps}
     />
   );
