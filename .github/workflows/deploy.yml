@@ -35,6 +35,8 @@ jobs:
 
       - name: Copy static files
         run: |
+          mkdir -p dist/apps
+          mkdir -p dist/assuta
           cp -R apps/* dist/apps/
           cp -R assuta/* dist/assuta/
 
