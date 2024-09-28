@@ -31,7 +31,7 @@ jobs:
 
       - name: Update Vite config for PR preview
         run: |
-          sed -i "s|base: '/'|base: '/pr-preview/${{ env.PR_NUMBER }}/'|" vite.config.js
+          sed -i "s|base: '/'|base: '/pr-preview/${{ env.PR_NUMBER }}/'|" vite.config.ts
 
       - name: Build project
         run: npm run build
