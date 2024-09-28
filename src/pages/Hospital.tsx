@@ -12,7 +12,6 @@ const appComponents: Record<
   React.LazyExoticComponent<React.ComponentType<any>>
 > = {
   demo: React.lazy(() => import('../apps/Demo/index.tsx')),
-  eos: React.lazy(() => import('../apps/eos/index.tsx')),
   // Add more apps here
 };
 
