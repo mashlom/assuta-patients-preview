@@ -33,12 +33,23 @@ jobs:
         with:
           path: ./dist
 
+      - name: Print folder structure before copying
+        run: |
+          echo "Folder structure before copying:"
+          tree -L 4
+
       - name: Copy static files
         run: |
           mkdir -p dist/apps
           mkdir -p dist/assuta
           cp -R apps/* dist/apps/
           cp -R assuta/* dist/assuta/
+
+      - name: Print folder structure after copying
+        run: |
+          echo "Folder structure after copying:"
+          tree -L 4
+  
 
   deploy:
     environment:
