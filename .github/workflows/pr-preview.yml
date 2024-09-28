@@ -46,7 +46,7 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GTOKEN }}
           publish_dir: ./dist
           destination_dir: pr-preview/${{ env.PR_NUMBER }}
 
@@ -75,10 +75,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GTOKEN }}
 
       - name: Delete PR Preview
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GTOKEN }}
           PR_NUMBER: ${{ github.event.number }}
         run: |
           git config --global user.name 'github-actions[bot]'
