@@ -35,10 +35,8 @@ jobs:
 
       - name: Copy static files
         run: |
-          mkdir -p build/apps
-          mkdir -p build/assuta
-          cp -R apps/* build/apps/
-          cp -R assuta/* build/assuta/
+          cp -R apps/* dist/apps/
+          cp -R assuta/* dist/assuta/
 
   deploy:
     environment:
