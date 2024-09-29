@@ -116,6 +116,136 @@
 #         id: deployment
 #         uses: actions/deploy-pages@v2
 
+
+# # working version keeping the artifacts in the repo but the main is changed
+# name: PR Preview Deployment
+
+# on:
+#   pull_request:
+#     types: [opened, synchronize, reopened]
+#   pull_request_target:
+#     types: [closed]
+
+# permissions:
+#   contents: read
+#   pages: write
+#   id-token: write
+#   pull-requests: write
+
+# jobs:
+#   build-and-deploy-preview:
+#     if: github.event.action != 'closed'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout main branch
+#         uses: actions/checkout@v3
+
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: '18'
+
+#       - name: Install dependencies
+#         run: npm ci
+
+#       - name: Build main project
+#         run: npm run build
+
+#       - name: Download current artifact
+#         uses: dawidd6/action-download-artifact@v2
+#         continue-on-error: true
+#         with:
+#           name: github-pages
+#           path: current-artifact
+#           workflow_conclusion: success
+#           check_artifacts: true
+#           search_artifacts: true
+#           if_no_artifact_found: warn
+
+#       - name: Prepare artifact directory
+#         run: |
+#           mkdir -p artifact
+#           if [ -f current-artifact/artifact.tar ]; then
+#             tar -xvf current-artifact/artifact.tar -C artifact
+#           else
+#             echo "No existing artifact found. Creating a fresh one."
+#             cp -R dist/* artifact/
+#           fi
+#           mkdir -p artifact/pr-preview
+
+#       - name: Checkout PR branch
+#         uses: actions/checkout@v3
+#         with:
+#           ref: ${{ github.event.pull_request.head.sha }}
+#           path: pr-source
+
+#       - name: Install PR dependencies
+#         working-directory: pr-source
+#         run: npm ci
+
+#       - name: Build PR project
+#         working-directory: pr-source
+#         env:
+#           PR_NUMBER: ${{ github.event.pull_request.number }}
+#         run: npm run build
+
+#       - name: Update PR preview
+#         run: |
+#           rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
+#           mv pr-source/dist artifact/pr-preview/${{ github.event.pull_request.number }}
+
+#       - name: Upload artifact
+#         uses: actions/upload-pages-artifact@v2
+#         with:
+#           path: ./artifact
+
+#       - name: Deploy to GitHub Pages
+#         id: deployment
+#         uses: actions/deploy-pages@v2
+
+#       - name: Comment PR
+#         uses: actions/github-script@v6
+#         with:
+#           github-token: ${{secrets.GITHUB_TOKEN}}
+#           script: |
+#             github.rest.issues.createComment({
+#               issue_number: context.issue.number,
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               body: `See PR preview here: https://assuta-patients-preview.mashlom.me/pr-preview/${{ github.event.pull_request.number }}/`
+#             })
+
+#   cleanup-preview:
+#     if: github.event.action == 'closed'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Download current artifact
+#         uses: dawidd6/action-download-artifact@v2
+#         with:
+#           name: github-pages
+#           path: current-artifact
+#           workflow_conclusion: success
+#           check_artifacts: true
+#           search_artifacts: true
+
+#       - name: Prepare artifact directory
+#         run: |
+#           mkdir -p artifact
+#           tar -xvf current-artifact/artifact.tar -C artifact
+
+#       - name: Remove PR preview
+#         run: |
+#           rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
+
+#       - name: Upload artifact
+#         uses: actions/upload-pages-artifact@v2
+#         with:
+#           path: ./artifact
+
+#       - name: Deploy to GitHub Pages
+#         id: deployment
+#         uses: actions/deploy-pages@v2
+
 name: PR Preview Deployment
 
 on:
@@ -138,17 +268,6 @@ jobs:
       - name: Checkout main branch
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build main project
-        run: npm run build
-
       - name: Download current artifact
         uses: dawidd6/action-download-artifact@v2
         continue-on-error: true
@@ -167,15 +286,19 @@ jobs:
             tar -xvf current-artifact/artifact.tar -C artifact
           else
             echo "No existing artifact found. Creating a fresh one."
-            cp -R dist/* artifact/
+            mkdir -p artifact/pr-preview
           fi
-          mkdir -p artifact/pr-preview
 
       - name: Checkout PR branch
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr-source
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
       - name: Install PR dependencies
         working-directory: pr-source

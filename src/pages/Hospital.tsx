@@ -26,7 +26,7 @@ const HospitalAppList: React.FC<{
   apps: MashlomAppType[];
 }> = ({ hospital, apps }) => (
   <>
-    <Header credit="777" />
+    <Header credit="222" />
     <div>
       <h1>{hospitals[hospital].name}</h1>
       <AppsContainer apps={apps} hospital="assuta" />
