@@ -13,7 +13,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: process.env.PR_NUMBER ? `/pr-preview/${process.env.PR_NUMBER}/` : '/',
   build: {
     rollupOptions: {
       output: {

@@ -1,3 +1,127 @@
+# name: PR Preview Deploy
+
+# on:
+#   pull_request:
+#     types: [opened, synchronize, reopened, closed]
+
+# permissions:
+#   contents: read
+#   pages: write
+#   id-token: write
+#   pull-requests: write
+
+# concurrency:
+#   group: "pages"
+#   cancel-in-progress: false
+
+# jobs:
+#   build-and-preview:
+#     if: github.event.action != 'closed'
+#     runs-on: ubuntu-latest
+#     environment:
+#       name: github-pages
+#       url: ${{ steps.deployment.outputs.page_url }}
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v3
+
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: '18'
+
+#       - name: Install dependencies
+#         run: npm ci
+
+#       - name: Get PR number and branch name
+#         run: |
+#           echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
+#           echo "BRANCH_NAME=$(echo ${GITHUB_HEAD_REF#refs/heads/} | sed 's/\//-/g')" >> $GITHUB_ENV
+
+#       - name: Update Vite config for PR preview
+#         run: |
+#           sed -i "s|base: '/'|base: '/pr-preview/${{ env.PR_NUMBER }}/'|" vite.config.ts
+
+#       - name: Build project
+#         run: npm run build
+
+#       - name: Copy static files
+#         run: |
+#           mkdir -p dist/apps
+#           mkdir -p dist/assuta
+#           cp -R apps/* dist/apps/
+#           cp -R assuta/* dist/assuta/
+
+#       - name: Setup Pages
+#         uses: actions/configure-pages@v3
+
+#       - name: Upload artifact
+#         uses: actions/upload-pages-artifact@v1
+#         with:
+#           path: './dist'
+
+#       - name: Deploy to GitHub Pages
+#         id: deployment
+#         uses: actions/deploy-pages@v2
+#         with:
+#           preview: true
+
+#       - name: Find Comment
+#         uses: peter-evans/find-comment@v2
+#         id: fc
+#         with:
+#           issue-number: ${{ github.event.pull_request.number }}
+#           comment-author: 'github-actions[bot]'
+#           body-includes: Preview deployed to
+
+#       - name: Comment PR
+#         uses: peter-evans/create-or-update-comment@v3
+#         with:
+#           issue-number: ${{ github.event.pull_request.number }}
+#           body: |
+#             Preview deployed to: ${{ steps.deployment.outputs.page_url }}pr-preview/${{ env.PR_NUMBER }}/
+            
+#             ${{ steps.fc.outputs.comment-id && 'Preview updated. See link above.' || 'Click the link above to view the preview.' }}
+#           edit-mode: replace
+#           comment-id: ${{ steps.fc.outputs.comment-id }}
+
+#   cleanup-preview:
+#     if: github.event.action == 'closed'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v3
+
+#       - name: Get branch name
+#         run: echo "BRANCH_NAME=$(echo ${GITHUB_HEAD_REF#refs/heads/} | sed 's/\//-/g')" >> $GITHUB_ENV
+
+#       - name: Delete PR Preview
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GTOKEN }}
+#           PR_NUMBER: ${{ github.event.number }}
+#         run: |
+#           gh auth login --with-token <<< "$GITHUB_TOKEN"
+#           gh api -X DELETE /repos/${{ github.repository }}/pages/deployments/pr-preview/$PR_NUMBER || echo "Deployment not found, skipping deletion"
+
+#       - name: Find Comment
+#         uses: peter-evans/find-comment@v2
+#         id: fc
+#         with:
+#           issue-number: ${{ github.event.pull_request.number }}
+#           comment-author: 'github-actions[bot]'
+#           body-includes: Preview deployed to
+
+#       - name: Update Comment
+#         uses: peter-evans/create-or-update-comment@v3
+#         if: steps.fc.outputs.comment-id
+#         with:
+#           comment-id: ${{ steps.fc.outputs.comment-id }}
+#           body: |
+#             ~~Preview deployed to: ${{ steps.deployment.outputs.page_url }}pr-preview/${{ github.event.number }}/~~
+            
+#             Preview deleted as PR was closed.
+#           edit-mode: replace
+
 name: PR Preview Deploy
 
 on:
@@ -10,17 +134,10 @@ permissions:
   id-token: write
   pull-requests: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
   build-and-preview:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -33,10 +150,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Get PR number and branch name
-        run: |
-          echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
-          echo "BRANCH_NAME=$(echo ${GITHUB_HEAD_REF#refs/heads/} | sed 's/\//-/g')" >> $GITHUB_ENV
+      - name: Get PR number
+        run: echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
 
       - name: Update Vite config for PR preview
         run: |
@@ -47,24 +162,18 @@ jobs:
 
       - name: Copy static files
         run: |
-          mkdir -p dist/apps
-          mkdir -p dist/assuta
-          cp -R apps/* dist/apps/
-          cp -R assuta/* dist/assuta/
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: './dist'
+          mkdir -p dist/pr-preview/${{ env.PR_NUMBER }}/apps
+          mkdir -p dist/pr-preview/${{ env.PR_NUMBER }}/assuta
+          cp -R apps/* dist/pr-preview/${{ env.PR_NUMBER }}/apps/
+          cp -R assuta/* dist/pr-preview/${{ env.PR_NUMBER }}/assuta/
 
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          preview: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: pr-preview/${{ env.PR_NUMBER }}
+          keep_files: true
 
       - name: Find Comment
         uses: peter-evans/find-comment@v2
@@ -79,7 +188,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            Preview deployed to: ${{ steps.deployment.outputs.page_url }}pr-preview/${{ env.PR_NUMBER }}/
+            Preview deployed to: https://assuta-patients-preview.mashlom.me/pr-preview/${{ env.PR_NUMBER }}/#/assuta
             
             ${{ steps.fc.outputs.comment-id && 'Preview updated. See link above.' || 'Click the link above to view the preview.' }}
           edit-mode: replace
@@ -92,16 +201,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Get branch name
-        run: echo "BRANCH_NAME=$(echo ${GITHUB_HEAD_REF#refs/heads/} | sed 's/\//-/g')" >> $GITHUB_ENV
-
       - name: Delete PR Preview
         env:
-          GITHUB_TOKEN: ${{ secrets.GTOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
         run: |
-          gh auth login --with-token <<< "$GITHUB_TOKEN"
-          gh api -X DELETE /repos/${{ github.repository }}/pages/deployments/pr-preview/$PR_NUMBER || echo "Deployment not found, skipping deletion"
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git pull origin gh-pages
+          git checkout gh-pages
+          git rm -rf pr-preview/$PR_NUMBER
+          git commit -m "Remove PR preview for #$PR_NUMBER"
+          git push origin gh-pages
 
       - name: Find Comment
         uses: peter-evans/find-comment@v2
@@ -117,7 +228,7 @@ jobs:
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           body: |
-            ~~Preview deployed to: ${{ steps.deployment.outputs.page_url }}pr-preview/${{ github.event.number }}/~~
+            ~~Preview deployed to: https://assuta-patients-preview.mashlom.me/pr-preview/${{ github.event.number }}/#/assuta~~
             
             Preview deleted as PR was closed.
           edit-mode: replace
