@@ -125,7 +125,7 @@ on:
     types: [closed]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
   pull-requests: write
@@ -138,7 +138,7 @@ jobs:
       - name: Checkout main branch
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all history for all branches and tags
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -151,34 +151,57 @@ jobs:
       - name: Build main project
         run: npm run build
 
+      - name: Checkout or create gh-pages branch
+        run: |
+          git checkout gh-pages || git checkout -b gh-pages
+          git pull origin gh-pages || true
+
+      - name: Preserve existing content
+        run: |
+          mkdir -p tmp
+          [ -d "pr-preview" ] && cp -R pr-preview tmp/ || true
+          rm -rf *
+          [ -d "tmp/pr-preview" ] && mv tmp/pr-preview . || mkdir pr-preview
+          rm -rf tmp
+
       - name: Checkout PR branch
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          path: pr-preview
+          path: pr-source
 
       - name: Install PR dependencies
-        working-directory: pr-preview
+        working-directory: pr-source
         run: npm ci
 
       - name: Build PR project
-        working-directory: pr-preview
+        working-directory: pr-source
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: npm run build
 
-      - name: Prepare PR preview
+      - name: Update PR preview
         run: |
-          mkdir -p dist/pr-preview
-          mv pr-preview/dist dist/pr-preview/${{ github.event.pull_request.number }}
+          rm -rf pr-preview/${{ github.event.pull_request.number }}
+          mv pr-source/dist pr-preview/${{ github.event.pull_request.number }}
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: ./dist
+      - name: Copy main build
+        run: |
+          cp -R dist/* .
+          rm -rf dist pr-source
+
+      - name: Configure Git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+      - name: Commit and push changes
+        run: |
+          git add .
+          git commit -m "Update PR preview for #${{ github.event.pull_request.number }}" || echo "No changes to commit"
+          git push origin gh-pages
 
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v2
 
       - name: Comment PR
@@ -197,31 +220,25 @@ jobs:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout gh-pages branch
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all history for all branches and tags
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
-        run: npm run build
+          ref: gh-pages
 
       - name: Remove PR preview
         run: |
-          rm -rf dist/pr-preview/${{ github.event.pull_request.number }}
+          rm -rf pr-preview/${{ github.event.pull_request.number }}
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: ./dist
+      - name: Configure Git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+      - name: Commit and push changes
+        run: |
+          git add .
+          git commit -m "Remove PR preview for #${{ github.event.pull_request.number }}" || echo "No changes to commit"
+          git push origin gh-pages
 
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v2
