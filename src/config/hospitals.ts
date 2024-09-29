@@ -22,7 +22,7 @@ export const hospitals: Record<string, HospitalConfig> = {
       primaryColor: '#007bff',
     },
   },
-  asuta: {
+  assuta: {
     name: 'אסותא אשדוד',
     apps: [
       MashlomApps.PHOTOTHERAPY,
