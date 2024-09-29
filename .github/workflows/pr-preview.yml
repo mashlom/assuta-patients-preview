@@ -97,7 +97,7 @@ jobs:
 
       - name: Delete PR Preview
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GTOKEN }}
           PR_NUMBER: ${{ github.event.number }}
         run: |
           gh auth login --with-token <<< "$GITHUB_TOKEN"
