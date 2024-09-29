@@ -125,7 +125,7 @@ on:
     types: [closed]
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
   pull-requests: write
@@ -137,8 +137,6 @@ jobs:
     steps:
       - name: Checkout main branch
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -151,18 +149,27 @@ jobs:
       - name: Build main project
         run: npm run build
 
-      - name: Checkout or create gh-pages branch
-        run: |
-          git checkout gh-pages || git checkout -b gh-pages
-          git pull origin gh-pages || true
+      - name: Download current artifact
+        uses: dawidd6/action-download-artifact@v2
+        continue-on-error: true
+        with:
+          name: github-pages
+          path: current-artifact
+          workflow_conclusion: success
+          check_artifacts: true
+          search_artifacts: true
+          if_no_artifact_found: warn
 
-      - name: Preserve existing content
+      - name: Prepare artifact directory
         run: |
-          mkdir -p tmp
-          [ -d "pr-preview" ] && cp -R pr-preview tmp/ || true
-          rm -rf *
-          [ -d "tmp/pr-preview" ] && mv tmp/pr-preview . || mkdir pr-preview
-          rm -rf tmp
+          mkdir -p artifact
+          if [ -f current-artifact/artifact.tar ]; then
+            tar -xvf current-artifact/artifact.tar -C artifact
+          else
+            echo "No existing artifact found. Creating a fresh one."
+            cp -R dist/* artifact/
+          fi
+          mkdir -p artifact/pr-preview
 
       - name: Checkout PR branch
         uses: actions/checkout@v3
@@ -182,26 +189,16 @@ jobs:
 
       - name: Update PR preview
         run: |
-          rm -rf pr-preview/${{ github.event.pull_request.number }}
-          mv pr-source/dist pr-preview/${{ github.event.pull_request.number }}
+          rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
+          mv pr-source/dist artifact/pr-preview/${{ github.event.pull_request.number }}
 
-      - name: Copy main build
-        run: |
-          cp -R dist/* .
-          rm -rf dist pr-source
-
-      - name: Configure Git
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-
-      - name: Commit and push changes
-        run: |
-          git add .
-          git commit -m "Update PR preview for #${{ github.event.pull_request.number }}" || echo "No changes to commit"
-          git push origin gh-pages
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ./artifact
 
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v2
 
       - name: Comment PR
@@ -220,25 +217,29 @@ jobs:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout gh-pages branch
-        uses: actions/checkout@v3
+      - name: Download current artifact
+        uses: dawidd6/action-download-artifact@v2
         with:
-          ref: gh-pages
+          name: github-pages
+          path: current-artifact
+          workflow_conclusion: success
+          check_artifacts: true
+          search_artifacts: true
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p artifact
+          tar -xvf current-artifact/artifact.tar -C artifact
 
       - name: Remove PR preview
         run: |
-          rm -rf pr-preview/${{ github.event.pull_request.number }}
+          rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
 
-      - name: Configure Git
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-
-      - name: Commit and push changes
-        run: |
-          git add .
-          git commit -m "Remove PR preview for #${{ github.event.pull_request.number }}" || echo "No changes to commit"
-          git push origin gh-pages
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ./artifact
 
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v2
