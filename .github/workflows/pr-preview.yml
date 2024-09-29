@@ -160,13 +160,19 @@ jobs:
           echo "PR_NUMBER=$PR_NUMBER" >> .env
           npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
         with:
-          personal_token: ${{ secrets.PAT }}
-          publish_dir: ./dist
-          destination_dir: pr-preview/${{ env.PR_NUMBER }}
-          keep_files: true
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+        with:
+          preview: true
 
       - name: Find Comment
         uses: peter-evans/find-comment@v2
@@ -181,7 +187,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            Preview deployed to: https://assuta-patients-preview.mashlom.me/pr-preview/${{ env.PR_NUMBER }}/#/assuta
+            Preview deployed to: ${{ steps.deployment.outputs.page_url }}pr-preview/${{ env.PR_NUMBER }}/#/assuta
             
             ${{ steps.fc.outputs.comment-id && 'Preview updated. See link above.' || 'Click the link above to view the preview.' }}
           edit-mode: replace
@@ -191,22 +197,13 @@ jobs:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
       - name: Delete PR Preview
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
         run: |
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-          git push origin --delete gh-pages || echo "Branch not found, skipping delete"
-          git checkout --orphan gh-pages
-          git rm -rf .
-          git commit --allow-empty -m "Initial gh-pages commit"
-          git push origin gh-pages
+          gh auth login --with-token <<< "$GITHUB_TOKEN"
+          gh api -X DELETE /repos/${{ github.repository }}/pages/deployments/pr-preview/$PR_NUMBER || echo "Deployment not found, skipping deletion"
 
       - name: Find Comment
         uses: peter-evans/find-comment@v2
@@ -222,7 +219,7 @@ jobs:
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           body: |
-            ~~Preview deployed to: https://assuta-patients-preview.mashlom.me/pr-preview/${{ github.event.number }}/#/assuta~~
+            ~~Preview deployed to: ${{ steps.deployment.outputs.page_url }}pr-preview/${{ github.event.number }}/#/assuta~~
             
             Preview deleted as PR was closed.
           edit-mode: replace
