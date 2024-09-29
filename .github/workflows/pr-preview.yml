@@ -153,11 +153,9 @@ jobs:
       - name: Get PR number
         run: echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
 
-      - name: Update Vite config for PR preview
-        run: |
-          sed -i "s|base: '/'|base: '/pr-preview/${{ env.PR_NUMBER }}/'|" vite.config.ts
-
       - name: Build project
+        env:
+          PR_NUMBER: ${{ github.event.number }}
         run: npm run build
 
       - name: Copy static files
