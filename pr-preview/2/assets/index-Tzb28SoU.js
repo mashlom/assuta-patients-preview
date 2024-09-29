@@ -1,0 +1,1 @@
+import{j as e}from"./index-DYk3VHtg.js";const r=({hospital:s})=>e.jsxs("div",{children:[e.jsx("h2",{children:"Demo App"}),e.jsxs("p",{children:["This is a placeholder for the Demo app in ",s]})]});export{r as default};
