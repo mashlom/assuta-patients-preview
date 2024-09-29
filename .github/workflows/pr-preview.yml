@@ -1,251 +1,3 @@
-# name: PR Preview Deployment
-
-# on:
-#   pull_request:
-#     types: [opened, synchronize, reopened]
-#   pull_request_target:
-#     types: [closed]
-
-# permissions:
-#   contents: read
-#   pages: write
-#   id-token: write
-#   pull-requests: write
-
-# jobs:
-#   build-and-deploy-preview:
-#     if: github.event.action != 'closed'
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout main branch
-#         uses: actions/checkout@v3
-#         with:
-#           ref: main
-
-#       - name: Set up Node.js
-#         uses: actions/setup-node@v3
-#         with:
-#           node-version: '18'
-
-#       - name: Install dependencies
-#         run: npm ci
-
-#       - name: Build main project
-#         run: npm run build
-
-#       - name: Download current artifact
-#         uses: actions/download-artifact@v3
-#         continue-on-error: true
-#         with:
-#           name: github-pages
-#           path: current-artifact
-
-#       - name: Extract current artifact
-#         run: |
-#           if [ -f current-artifact.tar ]; then
-#             tar -xvf current-artifact.tar
-#           fi
-
-#       - name: Checkout PR branch
-#         uses: actions/checkout@v3
-#         with:
-#           ref: ${{ github.event.pull_request.head.sha }}
-#           path: pr-preview
-
-#       - name: Install PR dependencies
-#         working-directory: pr-preview
-#         run: npm ci
-
-#       - name: Build PR project
-#         working-directory: pr-preview
-#         env:
-#           PR_NUMBER: ${{ github.event.pull_request.number }}
-#         run: npm run build
-
-#       - name: Update PR preview
-#         run: |
-#           mkdir -p dist/pr-preview/${{ github.event.pull_request.number }}
-#           rm -rf dist/pr-preview/${{ github.event.pull_request.number }}/*
-#           cp -R pr-preview/dist/* dist/pr-preview/${{ github.event.pull_request.number }}/
-
-#       - name: Upload artifact
-#         uses: actions/upload-pages-artifact@v2
-#         with:
-#           path: ./dist
-
-#       - name: Deploy to GitHub Pages
-#         id: deployment
-#         uses: actions/deploy-pages@v2
-
-#       - name: Comment PR
-#         uses: actions/github-script@v6
-#         with:
-#           github-token: ${{secrets.GITHUB_TOKEN}}
-#           script: |
-#             github.rest.issues.createComment({
-#               issue_number: context.issue.number,
-#               owner: context.repo.owner,
-#               repo: context.repo.repo,
-#               body: `See PR preview here: https://assuta-patients-preview.mashlom.me/pr-preview/${{ github.event.pull_request.number }}/`
-#             })
-
-#   cleanup-preview:
-#     if: github.event.action == 'closed'
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Download current artifact
-#         uses: actions/download-artifact@v3
-#         with:
-#           name: github-pages
-#           path: current-artifact
-
-#       - name: Extract current artifact
-#         run: |
-#           tar -xvf current-artifact.tar
-
-#       - name: Remove PR preview
-#         run: |
-#           rm -rf dist/pr-preview/${{ github.event.pull_request.number }}
-
-#       - name: Upload artifact
-#         uses: actions/upload-pages-artifact@v2
-#         with:
-#           path: ./dist
-
-#       - name: Deploy to GitHub Pages
-#         id: deployment
-#         uses: actions/deploy-pages@v2
-
-
-# # working version keeping the artifacts in the repo but the main is changed
-# name: PR Preview Deployment
-
-# on:
-#   pull_request:
-#     types: [opened, synchronize, reopened]
-#   pull_request_target:
-#     types: [closed]
-
-# permissions:
-#   contents: read
-#   pages: write
-#   id-token: write
-#   pull-requests: write
-
-# jobs:
-#   build-and-deploy-preview:
-#     if: github.event.action != 'closed'
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout main branch
-#         uses: actions/checkout@v3
-
-#       - name: Set up Node.js
-#         uses: actions/setup-node@v3
-#         with:
-#           node-version: '18'
-
-#       - name: Install dependencies
-#         run: npm ci
-
-#       - name: Build main project
-#         run: npm run build
-
-#       - name: Download current artifact
-#         uses: dawidd6/action-download-artifact@v2
-#         continue-on-error: true
-#         with:
-#           name: github-pages
-#           path: current-artifact
-#           workflow_conclusion: success
-#           check_artifacts: true
-#           search_artifacts: true
-#           if_no_artifact_found: warn
-
-#       - name: Prepare artifact directory
-#         run: |
-#           mkdir -p artifact
-#           if [ -f current-artifact/artifact.tar ]; then
-#             tar -xvf current-artifact/artifact.tar -C artifact
-#           else
-#             echo "No existing artifact found. Creating a fresh one."
-#             cp -R dist/* artifact/
-#           fi
-#           mkdir -p artifact/pr-preview
-
-#       - name: Checkout PR branch
-#         uses: actions/checkout@v3
-#         with:
-#           ref: ${{ github.event.pull_request.head.sha }}
-#           path: pr-source
-
-#       - name: Install PR dependencies
-#         working-directory: pr-source
-#         run: npm ci
-
-#       - name: Build PR project
-#         working-directory: pr-source
-#         env:
-#           PR_NUMBER: ${{ github.event.pull_request.number }}
-#         run: npm run build
-
-#       - name: Update PR preview
-#         run: |
-#           rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
-#           mv pr-source/dist artifact/pr-preview/${{ github.event.pull_request.number }}
-
-#       - name: Upload artifact
-#         uses: actions/upload-pages-artifact@v2
-#         with:
-#           path: ./artifact
-
-#       - name: Deploy to GitHub Pages
-#         id: deployment
-#         uses: actions/deploy-pages@v2
-
-#       - name: Comment PR
-#         uses: actions/github-script@v6
-#         with:
-#           github-token: ${{secrets.GITHUB_TOKEN}}
-#           script: |
-#             github.rest.issues.createComment({
-#               issue_number: context.issue.number,
-#               owner: context.repo.owner,
-#               repo: context.repo.repo,
-#               body: `See PR preview here: https://assuta-patients-preview.mashlom.me/pr-preview/${{ github.event.pull_request.number }}/`
-#             })
-
-#   cleanup-preview:
-#     if: github.event.action == 'closed'
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Download current artifact
-#         uses: dawidd6/action-download-artifact@v2
-#         with:
-#           name: github-pages
-#           path: current-artifact
-#           workflow_conclusion: success
-#           check_artifacts: true
-#           search_artifacts: true
-
-#       - name: Prepare artifact directory
-#         run: |
-#           mkdir -p artifact
-#           tar -xvf current-artifact/artifact.tar -C artifact
-
-#       - name: Remove PR preview
-#         run: |
-#           rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
-
-#       - name: Upload artifact
-#         uses: actions/upload-pages-artifact@v2
-#         with:
-#           path: ./artifact
-
-#       - name: Deploy to GitHub Pages
-#         id: deployment
-#         uses: actions/deploy-pages@v2
-
 name: PR Preview Deployment
 
 on:
@@ -267,6 +19,36 @@ jobs:
     steps:
       - name: Checkout main branch
         uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install main dependencies
+        run: npm ci
+
+      - name: Build main project
+        run: npm run build
+
+      - name: Print folder structure before copying (Main)
+        run: |
+          echo "Folder structure before copying (Main):"
+          tree -L 4
+
+      - name: Copy static files (Main)
+        run: |
+          mkdir -p dist/apps
+          mkdir -p dist/assuta
+          cp -R apps/* dist/apps/
+          cp -R assuta/* dist/assuta/
+
+      - name: Print folder structure after copying (Main)
+        run: |
+          echo "Folder structure after copying (Main):"
+          tree -L 4
 
       - name: Download current artifact
         uses: dawidd6/action-download-artifact@v2
@@ -284,21 +66,17 @@ jobs:
           mkdir -p artifact
           if [ -f current-artifact/artifact.tar ]; then
             tar -xvf current-artifact/artifact.tar -C artifact
-          else
-            echo "No existing artifact found. Creating a fresh one."
-            mkdir -p artifact/pr-preview
+            # Preserve existing PR previews
+            mv artifact/pr-preview dist/pr-preview || true
           fi
+          # Move the new main build into the artifact directory
+          mv dist/* artifact/
 
       - name: Checkout PR branch
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr-source
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
 
       - name: Install PR dependencies
         working-directory: pr-source
@@ -310,8 +88,29 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: npm run build
 
+      - name: Print folder structure before copying (PR)
+        working-directory: pr-source
+        run: |
+          echo "Folder structure before copying (PR):"
+          tree -L 4
+
+      - name: Copy static files (PR)
+        working-directory: pr-source
+        run: |
+          mkdir -p dist/apps
+          mkdir -p dist/assuta
+          cp -R apps/* dist/apps/
+          cp -R assuta/* dist/assuta/
+
+      - name: Print folder structure after copying (PR)
+        working-directory: pr-source
+        run: |
+          echo "Folder structure after copying (PR):"
+          tree -L 4
+
       - name: Update PR preview
         run: |
+          mkdir -p artifact/pr-preview
           rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
           mv pr-source/dist artifact/pr-preview/${{ github.event.pull_request.number }}
 

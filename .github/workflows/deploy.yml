@@ -44,11 +44,35 @@ jobs:
         run: |
           echo "Folder structure after copying:"
           tree -L 4
- 
+
+      - name: Download current artifact
+        uses: dawidd6/action-download-artifact@v2
+        continue-on-error: true
+        with:
+          name: github-pages
+          path: current-artifact
+          workflow_conclusion: success
+          check_artifacts: true
+          search_artifacts: true
+          if_no_artifact_found: warn
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p artifact
+          if [ -f current-artifact/artifact.tar ]; then
+            tar -xvf current-artifact/artifact.tar -C artifact
+            # Preserve existing PR previews
+            if [ -d "artifact/pr-preview" ]; then
+              mv artifact/pr-preview dist/
+            fi
+          fi
+          # Move the new main build into the artifact directory
+          mv dist/* artifact/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ./dist  
+          path: ./artifact
 
   deploy:
     environment:
