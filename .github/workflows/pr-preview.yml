@@ -224,6 +224,7 @@
 #             Preview deleted as PR was closed.
 #           edit-mode: replace
 
+
 name: PR Preview Deploy
 
 on:
@@ -262,11 +263,16 @@ jobs:
           echo "PR_NUMBER=$PR_NUMBER" >> .env
           npm run build
 
+      - name: Prepare PR preview directory
+        run: |
+          mkdir -p pr-preview/${{ env.PR_NUMBER }}
+          mv dist/* pr-preview/${{ env.PR_NUMBER }}/
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: .
           keep_files: true
 
       - name: Find Comment

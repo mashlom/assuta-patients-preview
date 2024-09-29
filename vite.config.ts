@@ -25,13 +25,13 @@
 //     },
 //   }
 // })
+
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.')
+  const env = loadEnv(mode, process.cwd(), '')
   const base = env.PR_NUMBER ? `/pr-preview/${env.PR_NUMBER}/` : '/'
   
   return {
@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: env.PR_NUMBER ? `dist/pr-preview/${env.PR_NUMBER}` : 'dist',
+      outDir: 'dist',
     },
   }
 })
