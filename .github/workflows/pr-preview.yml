@@ -137,8 +137,6 @@ jobs:
     steps:
       - name: Checkout main branch
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Fetch all history for all branches and tags
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -151,31 +149,53 @@ jobs:
       - name: Build main project
         run: npm run build
 
+      - name: Download current artifact
+        uses: dawidd6/action-download-artifact@v2
+        continue-on-error: true
+        with:
+          name: github-pages
+          path: current-artifact
+          workflow_conclusion: success
+          check_artifacts: true
+          search_artifacts: true
+          if_no_artifact_found: warn
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p artifact
+          if [ -f current-artifact/artifact.tar ]; then
+            tar -xvf current-artifact/artifact.tar -C artifact
+          else
+            echo "No existing artifact found. Creating a fresh one."
+            cp -R dist/* artifact/
+          fi
+          mkdir -p artifact/pr-preview
+
       - name: Checkout PR branch
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          path: pr-preview
+          path: pr-source
 
       - name: Install PR dependencies
-        working-directory: pr-preview
+        working-directory: pr-source
         run: npm ci
 
       - name: Build PR project
-        working-directory: pr-preview
+        working-directory: pr-source
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: npm run build
 
-      - name: Prepare PR preview
+      - name: Update PR preview
         run: |
-          mkdir -p dist/pr-preview
-          mv pr-preview/dist dist/pr-preview/${{ github.event.pull_request.number }}
+          rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
+          mv pr-source/dist artifact/pr-preview/${{ github.event.pull_request.number }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ./dist
+          path: ./artifact
 
       - name: Deploy to GitHub Pages
         id: deployment
@@ -197,30 +217,28 @@ jobs:
     if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Download current artifact
+        uses: dawidd6/action-download-artifact@v2
         with:
-          fetch-depth: 0  # Fetch all history for all branches and tags
+          name: github-pages
+          path: current-artifact
+          workflow_conclusion: success
+          check_artifacts: true
+          search_artifacts: true
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
-        run: npm run build
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p artifact
+          tar -xvf current-artifact/artifact.tar -C artifact
 
       - name: Remove PR preview
         run: |
-          rm -rf dist/pr-preview/${{ github.event.pull_request.number }}
+          rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ./dist
+          path: ./artifact
 
       - name: Deploy to GitHub Pages
         id: deployment
