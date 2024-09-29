@@ -160,17 +160,10 @@ jobs:
           echo "PR_NUMBER=$PR_NUMBER" >> .env
           npm run build
 
-      - name: Copy static files
-        run: |
-          mkdir -p dist/pr-preview/${{ env.PR_NUMBER }}/apps
-          mkdir -p dist/pr-preview/${{ env.PR_NUMBER }}/assuta
-          cp -R apps/* dist/pr-preview/${{ env.PR_NUMBER }}/apps/
-          cp -R assuta/* dist/pr-preview/${{ env.PR_NUMBER }}/assuta/
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          personal_token: ${{ secrets.PAT }}
           publish_dir: ./dist
           destination_dir: pr-preview/${{ env.PR_NUMBER }}
           keep_files: true
@@ -200,18 +193,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Delete PR Preview
         env:
-          GITHUB_TOKEN: ${{ secrets.GTOKEN }}
-          PR_NUMBER: ${{ github.event.number }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
         run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          git pull origin gh-pages
-          git checkout gh-pages
-          git rm -rf pr-preview/$PR_NUMBER
-          git commit -m "Remove PR preview for #$PR_NUMBER"
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git push origin --delete gh-pages || echo "Branch not found, skipping delete"
+          git checkout --orphan gh-pages
+          git rm -rf .
+          git commit --allow-empty -m "Initial gh-pages commit"
           git push origin gh-pages
 
       - name: Find Comment
