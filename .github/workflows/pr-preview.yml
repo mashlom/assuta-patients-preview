@@ -225,74 +225,82 @@
 #           edit-mode: replace
 
 
-name: PR Preview Deploy
+name: PR Preview Deployment
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
+  pull_request_target:
+    types: [closed]
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
   pull-requests: write
 
 jobs:
-  build-and-preview:
+  build-and-deploy-preview:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout main branch
         uses: actions/checkout@v3
-
+        with:
+          ref: main
+      
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-
+      
       - name: Install dependencies
         run: npm ci
-
-      - name: Get PR number
-        run: echo "PR_NUMBER=${{ github.event.number }}" >> $GITHUB_ENV
-
-      - name: Build project
+      
+      - name: Build main project
+        run: npm run build
+      
+      - name: Checkout PR branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr-preview
+      
+      - name: Install PR dependencies
+        working-directory: pr-preview
+        run: npm ci
+      
+      - name: Build PR project
+        working-directory: pr-preview
         env:
-          PR_NUMBER: ${{ github.event.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: npm run build
+      
+      - name: Copy PR build to main build
         run: |
-          echo "PR_NUMBER=$PR_NUMBER" >> .env
-          npm run build
-
-      - name: Prepare PR preview directory
-        run: |
-          mkdir -p pr-preview/${{ env.PR_NUMBER }}
-          mv dist/* pr-preview/${{ env.PR_NUMBER }}/
-
+          mkdir -p dist/pr-preview/${{ github.event.pull_request.number }}
+          cp -R pr-preview/dist/* dist/pr-preview/${{ github.event.pull_request.number }}/
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ./dist
+      
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          keep_files: true
-
-      - name: Find Comment
-        uses: peter-evans/find-comment@v2
-        id: fc
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: Preview deployed to
-
+        id: deployment
+        uses: actions/deploy-pages@v2
+      
       - name: Comment PR
-        uses: peter-evans/create-or-update-comment@v3
+        uses: actions/github-script@v6
         with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            Preview deployed to: https://assuta-patients-preview.mashlom.me/pr-preview/${{ env.PR_NUMBER }}/#/assuta
-            
-            ${{ steps.fc.outputs.comment-id && 'Preview updated. See link above.' || 'Click the link above to view the preview.' }}
-          edit-mode: replace
-          comment-id: ${{ steps.fc.outputs.comment-id }}
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `See PR preview here: https://assuta-patients-preview.mashlom.me/pr-preview/${{ github.event.pull_request.number }}/`
+            })
 
   cleanup-preview:
     if: github.event.action == 'closed'
@@ -300,34 +308,27 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          ref: gh-pages
-
-      - name: Delete PR Preview
-        env:
-          PR_NUMBER: ${{ github.event.number }}
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Remove PR preview
         run: |
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-          git rm -rf pr-preview/$PR_NUMBER || echo "Directory not found, skipping delete"
-          git commit -m "Remove PR preview for #$PR_NUMBER" || echo "No changes to commit"
-          git push origin gh-pages
-
-      - name: Find Comment
-        uses: peter-evans/find-comment@v2
-        id: fc
+          rm -rf dist/pr-preview/${{ github.event.pull_request.number }}
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
         with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: Preview deployed to
-
-      - name: Update Comment
-        uses: peter-evans/create-or-update-comment@v3
-        if: steps.fc.outputs.comment-id
-        with:
-          comment-id: ${{ steps.fc.outputs.comment-id }}
-          body: |
-            ~~Preview deployed to: https://assuta-patients-preview.mashlom.me/pr-preview/${{ github.event.number }}/#/assuta~~
-            
-            Preview deleted as PR was closed.
-          edit-mode: replace
+          path: ./dist
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
