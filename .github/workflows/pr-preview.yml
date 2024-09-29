@@ -67,10 +67,11 @@ jobs:
           if [ -f current-artifact/artifact.tar ]; then
             tar -xvf current-artifact/artifact.tar -C artifact
             # Preserve existing PR previews
-            mv artifact/pr-preview dist/pr-preview || true
+            mkdir -p dist/pr-preview
+            [ -d "artifact/pr-preview" ] && rsync -a artifact/pr-preview/ dist/pr-preview/
           fi
-          # Move the new main build into the artifact directory
-          mv dist/* artifact/
+          # Update the artifact directory with the new main build
+          rsync -a --delete dist/ artifact/
 
       - name: Checkout PR branch
         uses: actions/checkout@v3
@@ -110,9 +111,8 @@ jobs:
 
       - name: Update PR preview
         run: |
-          mkdir -p artifact/pr-preview
-          rm -rf artifact/pr-preview/${{ github.event.pull_request.number }}
-          mv pr-source/dist artifact/pr-preview/${{ github.event.pull_request.number }}
+          mkdir -p artifact/pr-preview/${{ github.event.pull_request.number }}
+          rsync -a --delete pr-source/dist/ artifact/pr-preview/${{ github.event.pull_request.number }}/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
