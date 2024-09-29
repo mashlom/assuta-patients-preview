@@ -54,11 +54,12 @@ const routes: RouteObject[] = [
     ],
   },
 ];
+const basePath = process.env.PR_NUMBER ? `/pr-preview/${process.env.PR_NUMBER}` : '';
 
 const App: React.FC = () => {
   return (
     <HelmetProvider>
-      <Router>
+      <Router basename={basePath}>
         <Routes>
           {routes.map((route) => (
             <Route
